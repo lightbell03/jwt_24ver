@@ -22,3 +22,9 @@ spring:
   h2:
     console:
       enabled: true
+
+jwt:
+  token:
+    access-token-expire-time: 300000
+    refresh-token-expire-time: 300000
+    security-key: security-key-enough-for-line-this-is-security-key-this-is-security-key
