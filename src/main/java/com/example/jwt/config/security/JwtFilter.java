@@ -1,6 +1,8 @@
 package com.example.jwt.config.security;
 
 import com.example.jwt.service.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +31,16 @@ public class JwtFilter extends OncePerRequestFilter {
         if(matchPermitURL(request)) {
 
         } else {
-            jwtService.validateToken()
+            try {
+                String token = resolveBearerAuthorizeHeader(request);
+
+                Long id = jwtService.getIdFromToken(token);
+
+            } catch (ExpiredJwtException e) {
+                throw e;
+            } catch (JwtException e) {
+                throw e;
+            }
         }
 
         filterChain.doFilter(request, response);
@@ -48,7 +59,12 @@ public class JwtFilter extends OncePerRequestFilter {
     private String resolveBearerAuthorizeHeader(HttpServletRequest request) {
         String authorizationHeader = request.getHeader("Authorization");
 
-        String token = authorizationHeader.substring(6);
+        String token = "";
+
+        if(authorizationHeader.startsWith("Bearer")) {
+            token = authorizationHeader.substring(6);
+        }
+
 
         return token;
     }

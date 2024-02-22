@@ -43,12 +43,18 @@ public class JwtService {
     }
 
     public Long getIdFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(SECURITY_KEY)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return Long.parseLong(claims.getId());
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(SECURITY_KEY)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return Long.parseLong(claims.getId());
+        } catch (ExpiredJwtException e) {
+            throw e;
+        } catch (JwtException e) {
+            throw e;
+        }
     }
 
     public boolean validateToken(String token) {

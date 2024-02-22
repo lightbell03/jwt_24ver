@@ -4,6 +4,7 @@ import com.example.jwt.dto.request.SignUpRequest;
 import com.example.jwt.entity.User;
 import com.example.jwt.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public void createUser(SignUpRequest signUpRequest) {
         Optional<User> optionalUser = userRepository.findByUserId(signUpRequest.getUserId());
@@ -24,7 +26,7 @@ public class UserService {
 
         userRepository.save(User.builder()
                 .userId(signUpRequest.getUserId())
-                .password(signUpRequest.getPassword())
+                .password(passwordEncoder.encode(signUpRequest.getPassword()))
                 .build());
     }
 
