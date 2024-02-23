@@ -1,16 +1,14 @@
 package com.example.jwt.controller;
 
 import com.example.jwt.dto.request.SignUpRequest;
+import com.example.jwt.dto.response.UserResponse;
 import com.example.jwt.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -25,5 +23,11 @@ public class UserController {
         userService.createUser(signUpRequest);
         log.info("회원가입 성공");
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping
+    public ResponseEntity<UserResponse> getUser(@RequestHeader("X_USER_ID") Long id) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(userService.getUser(id));
     }
 }

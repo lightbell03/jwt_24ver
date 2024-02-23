@@ -26,11 +26,9 @@ import java.security.Security;
 public class SecurityConfig {
 
     private final JwtService jwtService;
-    private final AuthService authService;
 
-    public SecurityConfig(JwtService jwtService, AuthService authService) {
+    public SecurityConfig(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.authService = authService;
     }
 
     @Bean
@@ -43,7 +41,6 @@ public class SecurityConfig {
                         .requestMatchers("/users/sign-up").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated())
-                .userDetailsService(authService)
                 .addFilterBefore(new JwtFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -1,9 +1,11 @@
 package com.example.jwt.service;
 
+import com.example.jwt.dto.JwtUser;
 import com.example.jwt.dto.request.SignInRequest;
 import com.example.jwt.dto.request.SignUpRequest;
 import com.example.jwt.dto.response.TokenResponse;
 import com.example.jwt.entity.User;
+import com.example.jwt.repository.RedisAuthRepository;
 import com.example.jwt.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,8 +30,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuthService implements UserDetailsService {
     private final UserRepository userRepository;
+    private final RedisAuthRepository redisAuthRepository;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,16 +39,16 @@ public class AuthService implements UserDetailsService {
         User user = userRepository.findByUserId(username)
                 .orElseThrow(() -> new UsernameNotFoundException("user id not found"));
 
-        return new org.springframework.security.core.userdetails.User(user.getUserId(), user.getPassword(), Collections.singletonList(new SimpleGrantedAuthority("ROLE_USEr")));
+        return JwtUser.of(user.getId(), user.getUserId(), user.getPassword(), Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
     }
 
-    public TokenResponse login(SignInRequest signInRequest) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(signInRequest.getUserId(), signInRequest.getPassword()));
+    public TokenResponse refreshToken() {
 
-        return generateToken(authentication);
+
+        return null;
     }
 
-    private TokenResponse generateToken(Authentication authentication) {
+    public TokenResponse generateToken(Authentication authentication) {
         String accessToken = jwtService.createAccessToken(authentication);
         String refreshToken = jwtService.createRefreshToken(authentication);
 

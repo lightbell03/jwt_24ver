@@ -1,6 +1,7 @@
 package com.example.jwt.config.security;
 
 import com.example.jwt.service.JwtService;
+import com.example.jwt.service.UserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,7 +22,8 @@ import org.springframework.web.servlet.mvc.condition.PathPatternsRequestConditio
 
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
-    private static final Set<AntPathRequestMatcher> requestMatcherSet = Set.of(new AntPathRequestMatcher("/auth/login"), new AntPathRequestMatcher("/auth/token/refresh"));
+    private static final Set<AntPathRequestMatcher> requestMatcherSet =
+            Set.of(new AntPathRequestMatcher("/auth/login"), new AntPathRequestMatcher("/auth/token/refresh"), new AntPathRequestMatcher("/users/sign-up"));
     private final JwtService jwtService;
 
     public JwtFilter(JwtService jwtService) {
@@ -28,9 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if(matchPermitURL(request)) {
-
-        } else {
+        if(!matchPermitURL(request)) {
             try {
                 String token = resolveBearerAuthorizeHeader(request);
 
@@ -64,7 +66,6 @@ public class JwtFilter extends OncePerRequestFilter {
         if(authorizationHeader.startsWith("Bearer")) {
             token = authorizationHeader.substring(6);
         }
-
 
         return token;
     }

@@ -1,6 +1,7 @@
 package com.example.jwt.service;
 
 import com.example.jwt.dto.request.SignUpRequest;
+import com.example.jwt.dto.response.UserResponse;
 import com.example.jwt.entity.User;
 import com.example.jwt.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +32,10 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public void getUser() {
+    public UserResponse getUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("not found user"));
 
+        return new UserResponse(user.getId(), user.getUserId());
     }
-
-
-
 }

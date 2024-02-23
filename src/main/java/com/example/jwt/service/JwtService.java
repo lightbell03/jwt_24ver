@@ -1,6 +1,7 @@
 package com.example.jwt.service;
 
 import com.example.jwt.config.property.JwtTokenProperties;
+import com.example.jwt.dto.JwtUser;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.Authentication;
@@ -24,10 +25,10 @@ public class JwtService {
     }
 
     private String createToken(Authentication authentication, Long expireTime) {
-        User user = (User) authentication.getPrincipal();
+        JwtUser user = (JwtUser) authentication.getPrincipal();
         Date now = new Date();
         return Jwts.builder()
-                .id(user.getUsername())
+                .id(String.valueOf(user.getId()))
                 .issuedAt(now)
                 .expiration(new Date(expireTime))
                 .signWith(SECURITY_KEY)
