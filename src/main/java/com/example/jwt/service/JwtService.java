@@ -30,7 +30,7 @@ public class JwtService {
         return Jwts.builder()
                 .id(String.valueOf(user.getId()))
                 .issuedAt(now)
-                .expiration(new Date(expireTime))
+                .expiration(new Date(expireTime + now.getTime()))
                 .signWith(SECURITY_KEY)
                 .compact();
     }

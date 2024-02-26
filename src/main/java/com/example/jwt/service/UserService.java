@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,7 +22,7 @@ public class UserService {
     public void createUser(SignUpRequest signUpRequest) {
         Optional<User> optionalUser = userRepository.findByUserId(signUpRequest.getUserId());
 
-        if(optionalUser.isPresent()) {
+        if (optionalUser.isPresent()) {
             throw new RuntimeException("중복 아이디");
         }
 
@@ -29,6 +30,15 @@ public class UserService {
                 .userId(signUpRequest.getUserId())
                 .password(passwordEncoder.encode(signUpRequest.getPassword()))
                 .build());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUser() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(user -> new UserResponse(user.getId(), user.getUserId()))
+                .toList();
     }
 
     @Transactional(readOnly = true)

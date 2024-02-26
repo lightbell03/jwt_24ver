@@ -1,46 +1,70 @@
 package com.example.jwt.config.security;
 
+import com.example.jwt.entity.User;
+import com.example.jwt.repository.RedisAuthRepository;
+import com.example.jwt.repository.RedisBlackListRepository;
+import com.example.jwt.repository.RedisTokenRepository;
+import com.example.jwt.repository.UserRepository;
 import com.example.jwt.service.JwtService;
-import com.example.jwt.service.UserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
-import java.util.List;
+import java.util.Collections;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.mvc.condition.PathPatternsRequestCondition;
 
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
     private static final Set<AntPathRequestMatcher> requestMatcherSet =
             Set.of(new AntPathRequestMatcher("/auth/login"), new AntPathRequestMatcher("/auth/token/refresh"), new AntPathRequestMatcher("/users/sign-up"));
+    private static final String ACCESS_TOKEN_PREFIX = "ACCESS_TOKEN:";
     private final JwtService jwtService;
+    private final RedisAuthRepository redisBlackListRepository;
+    private final UserRepository userRepository;
 
-    public JwtFilter(JwtService jwtService) {
+    public JwtFilter(JwtService jwtService, RedisAuthRepository redisBlackListRepository, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
+        this.redisBlackListRepository = redisBlackListRepository;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if(!matchPermitURL(request)) {
+        if (!matchPermitURL(request)) {
             try {
                 String token = resolveBearerAuthorizeHeader(request);
+                Long userId = jwtService.getIdFromToken(token);
 
-                Long id = jwtService.getIdFromToken(token);
+                String blackListToken = redisBlackListRepository.get(ACCESS_TOKEN_PREFIX + userId).orElse("");
+
+                // black list token DLS
+                if (token.equals(blackListToken)) {
+                    throw new RuntimeException("logout user");
+                }
+
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("Not Found User"));
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(user.getId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (ExpiredJwtException e) {
                 throw e;
             } catch (JwtException e) {
+                throw e;
+            } catch (RuntimeException e) {
                 throw e;
             }
         }
@@ -49,8 +73,8 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     private boolean matchPermitURL(HttpServletRequest request) {
-        for(AntPathRequestMatcher requestMatcher : requestMatcherSet) {
-            if(requestMatcher.matches(request)) {
+        for (AntPathRequestMatcher requestMatcher : requestMatcherSet) {
+            if (requestMatcher.matches(request)) {
                 return true;
             }
         }
@@ -63,8 +87,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = "";
 
-        if(authorizationHeader.startsWith("Bearer")) {
-            token = authorizationHeader.substring(6);
+        if (authorizationHeader.startsWith("Bearer")) {
+            token = authorizationHeader.substring(7);
         }
 
         return token;

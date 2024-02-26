@@ -10,10 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -32,9 +30,14 @@ public class AuthController {
                 .body(authService.generateToken(authentication));
     }
 
-    @PostMapping("/token/refresh")
-    public ResponseEntity<Void> refreshToken() {
+    @GetMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        authService.logout(SecurityContextHolder.getContext().getAuthentication());
+        return ResponseEntity.status(HttpStatus.OK).body(null);
+    }
 
-        return ResponseEntity.ok().build();
+    @PostMapping("/token/refresh")
+    public ResponseEntity<TokenResponse> refreshToken(@RequestHeader("Authorization") String authorization) {
+        return ResponseEntity.status(HttpStatus.OK).body(authService.refreshToken(authorization));
     }
 }
