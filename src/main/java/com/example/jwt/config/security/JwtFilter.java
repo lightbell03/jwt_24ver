@@ -49,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 String blackListToken = redisBlackListRepository.get(ACCESS_TOKEN_PREFIX + userId).orElse("");
 
-                // black list token DLS
+                // black list token
                 if (token.equals(blackListToken)) {
                     throw new RuntimeException("logout user");
                 }

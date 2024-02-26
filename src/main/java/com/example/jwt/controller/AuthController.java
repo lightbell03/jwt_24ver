@@ -1,5 +1,6 @@
 package com.example.jwt.controller;
 
+import com.example.jwt.dto.request.RefreshTokenRequest;
 import com.example.jwt.dto.request.SignInRequest;
 import com.example.jwt.dto.response.TokenResponse;
 import com.example.jwt.service.AuthService;
@@ -37,7 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("/token/refresh")
-    public ResponseEntity<TokenResponse> refreshToken(@RequestHeader("Authorization") String authorization) {
-        return ResponseEntity.status(HttpStatus.OK).body(authService.refreshToken(authorization));
+    public ResponseEntity<TokenResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        return ResponseEntity.status(HttpStatus.OK).body(authService.refreshToken(refreshTokenRequest.getRefreshToken()));
     }
 }

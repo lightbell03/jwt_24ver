@@ -74,7 +74,9 @@ public class AuthService implements UserDetailsService {
         }
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Not Found User"));
-        Authentication authentication = new UsernamePasswordAuthenticationToken(user.getId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        JwtUser jwtUser = JwtUser.of(user.getId(), user.getUserId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(jwtUser, null, jwtUser.getAuthorities());
 
         TokenResponse tokenResponse = generateToken(authentication);
         saveTokenRedis(redisTokenRepository, user.getId(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
