@@ -20,12 +20,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtService jwtService;
+    private final RedisAuthRepository redisTokenRepository;
     private final RedisAuthRepository redisBlackListRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtService jwtService, RedisAuthRepository redisBlackListRepository, UserRepository userRepository, ObjectMapper objectMapper) {
+    public SecurityConfig(JwtService jwtService, RedisAuthRepository redisTokenRepository, RedisAuthRepository redisBlackListRepository, UserRepository userRepository, ObjectMapper objectMapper) {
         this.jwtService = jwtService;
+        this.redisTokenRepository = redisTokenRepository;
         this.redisBlackListRepository = redisBlackListRepository;
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
@@ -41,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/users/sign-up").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtFilter(jwtService, redisBlackListRepository, userRepository), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtFilter(jwtService, redisTokenRepository, redisBlackListRepository, userRepository), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new ExceptionFilter(objectMapper), JwtFilter.class)
                 .build();
     }

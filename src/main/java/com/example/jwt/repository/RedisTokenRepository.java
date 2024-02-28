@@ -1,10 +1,12 @@
 package com.example.jwt.repository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Repository
 @RequiredArgsConstructor
@@ -16,12 +18,13 @@ public class RedisTokenRepository implements RedisAuthRepository {
     }
 
     public void save(String key, String value, Long TTL) {
-        redisTemplate.opsForValue().set(key, value, TTL);
+        redisTemplate.opsForValue().set(key, value, TTL, TimeUnit.MILLISECONDS);
     }
 
 
     public Optional<String> get(String key) {
-        return Optional.ofNullable(redisTemplate.opsForValue().get(key));
+        String value = redisTemplate.opsForValue().get(key);
+        return Optional.ofNullable(value);
     }
 
     @Override

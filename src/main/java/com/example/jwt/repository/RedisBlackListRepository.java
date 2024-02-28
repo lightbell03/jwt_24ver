@@ -1,19 +1,18 @@
 package com.example.jwt.repository;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Repository
+@RequiredArgsConstructor
 public class RedisBlackListRepository implements RedisAuthRepository {
     private static final String BAN_PREFIX = "ban:";
     private final RedisTemplate<String, String> redisTemplate;
-
-    public RedisBlackListRepository(@Qualifier("blackListRedisTemplate") RedisTemplate<String, String> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-    }
 
     @Override
     public Optional<String> get(String key) {
@@ -27,7 +26,7 @@ public class RedisBlackListRepository implements RedisAuthRepository {
 
     @Override
     public void save(String key, String value, Long TTL) {
-        redisTemplate.opsForValue().set(BAN_PREFIX + key, value, TTL);
+        redisTemplate.opsForValue().set(BAN_PREFIX + key, value, TTL, TimeUnit.MILLISECONDS);
     }
 
     @Override

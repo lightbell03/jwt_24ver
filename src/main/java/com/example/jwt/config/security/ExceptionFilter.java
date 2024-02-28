@@ -8,10 +8,12 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 public class ExceptionFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
@@ -24,10 +26,13 @@ public class ExceptionFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } catch (ExpiredJwtException e) {
+            log.info("error {}", e);
             errorResponse(response, ErrorType.EXPIRED_TOKEN);
         } catch (JwtException e) {
+            log.info("error {}", e);
             errorResponse(response, ErrorType.UNAUTHORIZATION);
         } catch (Exception e) {
+            log.info("error {}", e);
             errorResponse(response, ErrorType.INTERNAL_SERVER_ERROR);
         }
     }

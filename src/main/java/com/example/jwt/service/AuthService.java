@@ -52,6 +52,15 @@ public class AuthService implements UserDetailsService {
         return JwtUser.of(user.getId(), user.getUserId(), user.getPassword(), Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
     }
 
+    public TokenResponse login(Authentication authentication) {
+        JwtUser jwtUser = (JwtUser) authentication.getPrincipal();
+        TokenResponse tokenResponse = generateToken(authentication);
+
+        saveTokenRedis(redisTokenRepository, jwtUser.getId(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+
+        return tokenResponse;
+    }
+
     public void logout(Authentication authentication) {
         JwtUser user = (JwtUser) authentication.getPrincipal();
 
@@ -63,16 +72,28 @@ public class AuthService implements UserDetailsService {
         saveTokenRedis(redisBlackListRepository, user.getId(), accessToken, refreshToken);
     }
 
-    public TokenResponse refreshToken(String refreshToken) {
+    public TokenResponse refreshToken(final String refreshToken) {
+        // refresh token 유효성 검증
         Long userId = jwtService.getIdFromToken(refreshToken);
+        String storedRefreshToken = redisTokenRepository.get(REFRESH_TOKEN_PREFIX + userId)
+                .orElseThrow(() -> new RuntimeException("invalid refresh token"));
 
+        if(!storedRefreshToken.equals(refreshToken)) {
+            throw new RuntimeException("invalid refresh token");
+        }
+
+        // refresh token 이 블랙리스트에 존재하는 토큰인지 확인
         String bannedRefreshToken = redisBlackListRepository.get(REFRESH_TOKEN_PREFIX + userId)
                 .orElse("");
-
-        if (refreshToken.equals(bannedRefreshToken)) {
+        if (bannedRefreshToken.equals(refreshToken)) {
             throw new RuntimeException("invalid user");
         }
 
+        // refresh 에 사용된 refresh token 블랙리스트 추가
+        redisBlackListRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
+        // TODO Access Token 블랙리스트 추가 필요
+
+        // 토큰 재발급
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Not Found User"));
         JwtUser jwtUser = JwtUser.of(user.getId(), user.getUserId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 

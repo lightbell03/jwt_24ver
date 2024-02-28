@@ -31,12 +31,14 @@ public class JwtFilter extends OncePerRequestFilter {
             Set.of(new AntPathRequestMatcher("/auth/login"), new AntPathRequestMatcher("/auth/token/refresh"), new AntPathRequestMatcher("/users/sign-up"));
     private static final String ACCESS_TOKEN_PREFIX = "ACCESS_TOKEN:";
     private final JwtService jwtService;
+    private final RedisAuthRepository redisTokenRepository;
     private final RedisAuthRepository redisBlackListRepository;
     private final UserRepository userRepository;
 
-    public JwtFilter(JwtService jwtService, RedisAuthRepository redisBlackListRepository, UserRepository userRepository) {
+    public JwtFilter(JwtService jwtService, RedisAuthRepository redisTokenRepository, RedisAuthRepository redisBlackListRepository, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.redisTokenRepository = redisTokenRepository;
         this.redisBlackListRepository = redisBlackListRepository;
     }
 
@@ -47,11 +49,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 String token = resolveBearerAuthorizeHeader(request);
                 Long userId = jwtService.getIdFromToken(token);
 
-                String blackListToken = redisBlackListRepository.get(ACCESS_TOKEN_PREFIX + userId).orElse("");
-
-                // black list token
-                if (token.equals(blackListToken)) {
-                    throw new RuntimeException("logout user");
+                if (!isValidToken(userId, token)) {
+                    throw new RuntimeException("unAuthorization user");
                 }
 
                 User user = userRepository.findById(userId)
@@ -92,5 +91,17 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         return token;
+    }
+
+    private boolean isValidToken(Long id, String token) {
+        String storedAccessToken = redisTokenRepository.get(ACCESS_TOKEN_PREFIX + id).orElse("");
+
+        // 토큰 저장이 되어 있으면
+        if (storedAccessToken.equals(token)) {
+            return true;
+        }
+
+        String blackListAccessToken = redisBlackListRepository.get(ACCESS_TOKEN_PREFIX + id).orElse("");
+        return !blackListAccessToken.equals(token);
     }
 }

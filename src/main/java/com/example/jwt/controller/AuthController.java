@@ -28,7 +28,7 @@ public class AuthController {
                 .authenticate(new UsernamePasswordAuthenticationToken(signInRequest.getUserId(), signInRequest.getPassword()));
 
         return ResponseEntity.status(HttpStatus.OK)
-                .body(authService.generateToken(authentication));
+                .body(authService.login(authentication));
     }
 
     @GetMapping("/logout")
