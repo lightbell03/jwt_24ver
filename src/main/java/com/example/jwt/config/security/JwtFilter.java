@@ -45,27 +45,25 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if (!matchPermitURL(request)) {
+            String token = resolveBearerAuthorizeHeader(request);
             try {
-                String token = resolveBearerAuthorizeHeader(request);
-                Long userId = jwtService.getIdFromToken(token);
-
-                if (!isValidToken(userId, token)) {
-                    throw new RuntimeException("unAuthorization user");
-                }
-
-                User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("Not Found User"));
-
-                Authentication authentication = new UsernamePasswordAuthenticationToken(user.getId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            } catch (ExpiredJwtException e) {
-                throw e;
-            } catch (JwtException e) {
-                throw e;
-            } catch (RuntimeException e) {
+                jwtService.validateToken(token);
+            } catch (Exception e) {
                 throw e;
             }
+
+            Long userId = jwtService.getIdFromToken(token);
+
+            if (!isValidToken(userId, token)) {
+                throw new RuntimeException("unAuthorization user");
+            }
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Not Found User"));
+
+            Authentication authentication = new UsernamePasswordAuthenticationToken(user.getId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
         }
 
         filterChain.doFilter(request, response);
