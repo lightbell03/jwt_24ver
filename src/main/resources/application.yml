@@ -25,6 +25,6 @@ spring:
 
 jwt:
   token:
-    access-token-expire-time: 60000
-    refresh-token-expire-time: 600000
+    access-token-expire-time: 10000
+    refresh-token-expire-time: 60000000000
     security-key: security-key-enough-for-line-this-is-security-key-this-is-security-key

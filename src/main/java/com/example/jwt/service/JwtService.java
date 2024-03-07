@@ -58,17 +58,18 @@ public class JwtService {
         }
     }
 
-    public boolean validateToken(String token) {
+    public void validateToken(String token) {
         try {
             Jwts.parser()
                     .verifyWith(SECURITY_KEY)
                     .build()
                     .parseSignedClaims(token);
-            return true;
         } catch (ExpiredJwtException e) {
             throw e;
         } catch (JwtException e) {
-            return false;
+            throw e;
+        } catch (Exception e) {
+            throw e;
         }
     }
 

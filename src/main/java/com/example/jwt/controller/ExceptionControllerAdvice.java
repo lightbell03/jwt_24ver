@@ -1,6 +1,6 @@
 package com.example.jwt.controller;
 
-import com.example.jwt.error.ErrorResponse;
+import com.example.jwt.dto.response.CommonResponse;
 import com.example.jwt.error.ErrorType;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ExceptionControllerAdvice {
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<ErrorResponse> expiredJwtException() {
+    public ResponseEntity<CommonResponse<Void>> expiredJwtException() {
         return ResponseEntity.status(ErrorType.EXPIRED_TOKEN.getStatus())
-                .body(new ErrorResponse(ErrorType.EXPIRED_TOKEN.getMessage(), ErrorType.EXPIRED_TOKEN.getErrorCode()));
+                .body(new CommonResponse<>(ErrorType.EXPIRED_TOKEN.getErrorCode(), null, ErrorType.EXPIRED_TOKEN.getMessage()));
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ErrorResponse> jwtException() {
+    public ResponseEntity<CommonResponse<Void>> jwtException() {
         return ResponseEntity.status(ErrorType.UNAUTHORIZATION.getStatus())
-                .body(new ErrorResponse(ErrorType.UNAUTHORIZATION.getMessage(), ErrorType.EXPIRED_TOKEN.getErrorCode()));
+                .body(new CommonResponse<>(ErrorType.UNAUTHORIZATION.getErrorCode(), null, ErrorType.EXPIRED_TOKEN.getMessage()));
     }
 }

@@ -8,12 +8,11 @@ import com.example.jwt.repository.RedisAuthRepository;
 import com.example.jwt.repository.RedisBlackListRepository;
 import com.example.jwt.repository.RedisTokenRepository;
 import com.example.jwt.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.ExpiredJwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 
 @Service
+@Slf4j
 @Transactional
 public class AuthService implements UserDetailsService {
     private static final String ACCESS_TOKEN_PREFIX = "ACCESS_TOKEN:";
@@ -72,26 +72,28 @@ public class AuthService implements UserDetailsService {
         saveTokenRedis(redisBlackListRepository, user.getId(), accessToken, refreshToken);
     }
 
-    public TokenResponse refreshToken(final String refreshToken) {
+    public synchronized TokenResponse refreshToken(final String refreshToken) {
         // refresh token 유효성 검증
         Long userId = jwtService.getIdFromToken(refreshToken);
         String storedRefreshToken = redisTokenRepository.get(REFRESH_TOKEN_PREFIX + userId)
-                .orElseThrow(() -> new RuntimeException("invalid refresh token"));
+                .orElseThrow(() -> new RuntimeException("not found refresh token"));
+
+        log.info("request refresh token = {}", refreshToken);
+        log.info("stored refresh token = {}", storedRefreshToken);
 
         if(!storedRefreshToken.equals(refreshToken)) {
             throw new RuntimeException("invalid refresh token");
         }
 
         // refresh token 이 블랙리스트에 존재하는 토큰인지 확인
-        String bannedRefreshToken = redisBlackListRepository.get(REFRESH_TOKEN_PREFIX + userId)
-                .orElse("");
-        if (bannedRefreshToken.equals(refreshToken)) {
-            throw new RuntimeException("invalid user");
-        }
+//        String bannedRefreshToken = redisBlackListRepository.get(REFRESH_TOKEN_PREFIX + userId)
+//                .orElse("");
+//        if (bannedRefreshToken.equals(refreshToken)) {
+//            throw new RuntimeException("blacklist user");
+//        }
 
         // refresh 에 사용된 refresh token 블랙리스트 추가
-        redisBlackListRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
-        // TODO Access Token 블랙리스트 추가 필요
+//        redisBlackListRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
 
         // 토큰 재발급
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Not Found User"));
@@ -99,10 +101,7 @@ public class AuthService implements UserDetailsService {
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(jwtUser, null, jwtUser.getAuthorities());
 
-        TokenResponse tokenResponse = generateToken(authentication);
-        saveTokenRedis(redisTokenRepository, user.getId(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
-
-        return tokenResponse;
+        return generateToken(authentication);
     }
 
     public TokenResponse generateToken(Authentication authentication) {

@@ -3,6 +3,7 @@ package com.example.jwt.error;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorType {
+    BAD_REQUEST("bad request", HttpStatus.BAD_REQUEST, 4000),
     UNAUTHORIZATION("unAuthorization", HttpStatus.UNAUTHORIZED, 4011),
     EXPIRED_TOKEN("token expired", HttpStatus.UNAUTHORIZED, 4012),
     INTERNAL_SERVER_ERROR("internal server error", HttpStatus.INTERNAL_SERVER_ERROR, 5000);
