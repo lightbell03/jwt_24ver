@@ -19,12 +19,17 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 
 @Service
 @Slf4j
 @Transactional
 public class AuthService implements UserDetailsService {
+//    private static final long sevenDays = 1000 * 60 * 60 * 24 * 7;
+    private static final long sevenDays = 1000 * 60 * 4;
     private static final String ACCESS_TOKEN_PREFIX = "ACCESS_TOKEN:";
     private static final String REFRESH_TOKEN_PREFIX = "REFRESH_TOKEN:";
     private final Long ACCESS_TOKEN_EXPIRE_TIME;
@@ -74,50 +79,49 @@ public class AuthService implements UserDetailsService {
 
     public TokenResponse refreshToken(String refreshToken) {
         try {
-            jwtService.validateToken(refreshToken);
-        } catch (ExpiredJwtException e) {
+            Date now = new Date();
+            Date afterSevenDayFromNow = new Date(now.getTime() + sevenDays);
+            Date tokenRemainTime = jwtService.getDateFromToken(refreshToken);
+
+            log.info("token remain date = {}", tokenRemainTime);
+
             Long userId = jwtService.getIdFromToken(refreshToken);
 
-            String storedRefreshToken = redisTokenRepository.get(REFRESH_TOKEN_PREFIX + userId)
-                    .orElse("");
+            String storedRefreshToken = redisTokenRepository.get(REFRESH_TOKEN_PREFIX + userId + ":" + refreshToken).orElse("");
 
             if(!storedRefreshToken.equals(refreshToken)) {
-                throw new RuntimeException("unmatched refresh token");
+                throw new RuntimeException("not found refresh token");
             }
 
+            // refresh token 이 블랙리스트에 존재하는 토큰인지 확인
+//            String bannedRefreshToken = redisBlackListRepository.get(REFRESH_TOKEN_PREFIX + userId)
+//                    .orElse("");
+//            if (bannedRefreshToken.equals(refreshToken)) {
+//                throw new RuntimeException("blacklist user");
+//            }
 
-            // refresh 토큰 재발급
             User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Not Found User"));
             JwtUser jwtUser = JwtUser.of(user.getId(), user.getUserId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
             Authentication authentication = new UsernamePasswordAuthenticationToken(jwtUser, null, jwtUser.getAuthorities());
 
-            refreshToken = jwtService.createRefreshToken(authentication);
-            redisTokenRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
+            String accessToken = jwtService.createAccessToken(authentication);
+            redisTokenRepository.save(ACCESS_TOKEN_PREFIX + userId, accessToken, ACCESS_TOKEN_EXPIRE_TIME);
+
+            if(afterSevenDayFromNow.after(tokenRemainTime)) {
+                log.info("create refresh token");
+                // 이전 refresh token 유효 시간 짧게 변경
+                redisTokenRepository.save(REFRESH_TOKEN_PREFIX + userId + ":" + refreshToken, refreshToken, 5000L);
+                refreshToken = jwtService.createRefreshToken(authentication);
+                redisTokenRepository.save(REFRESH_TOKEN_PREFIX + userId + ":" + refreshToken, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
+            }
+
+            return new TokenResponse(accessToken, refreshToken);
+        } catch (ExpiredJwtException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("invalid refresh token");
+            throw new RuntimeException("invalid refresh token, " + e.getMessage());
         }
-
-        // refresh token 이 블랙리스트에 존재하는 토큰인지 확인
-//        String bannedRefreshToken = redisBlackListRepository.get(REFRESH_TOKEN_PREFIX + userId)
-//                .orElse("");
-//        if (bannedRefreshToken.equals(refreshToken)) {
-//            throw new RuntimeException("blacklist user");
-//        }
-
-        // refresh 에 사용된 refresh token 블랙리스트 추가
-//        redisBlackListRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
-
-        Long userId = jwtService.getIdFromToken(refreshToken);
-
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Not Found User"));
-        JwtUser jwtUser = JwtUser.of(user.getId(), user.getUserId(), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(jwtUser, null, jwtUser.getAuthorities());
-
-        String accessToken = jwtService.createRefreshToken(authentication);
-
-        return new TokenResponse(accessToken, refreshToken);
     }
 
     public TokenResponse generateToken(Authentication authentication) {
@@ -133,6 +137,6 @@ public class AuthService implements UserDetailsService {
 
     private void saveTokenRedis(RedisAuthRepository redisAuthRepository, Long userId, String accessToken, String refreshToken) {
         redisAuthRepository.save(ACCESS_TOKEN_PREFIX + userId, accessToken, ACCESS_TOKEN_EXPIRE_TIME);
-        redisAuthRepository.save(REFRESH_TOKEN_PREFIX + userId, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
+        redisAuthRepository.save(REFRESH_TOKEN_PREFIX + userId + ":" + refreshToken, refreshToken, REFRESH_TOKEN_EXPIRE_TIME);
     }
 }

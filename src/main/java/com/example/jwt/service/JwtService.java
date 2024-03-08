@@ -50,7 +50,14 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
         return Long.parseLong(claims.getId());
+    }
 
+    public Date getDateFromToken(String token) {
+        return Jwts.parser().verifyWith(SECURITY_KEY)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration();
     }
 
     public void validateToken(String token) {
