@@ -28,7 +28,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
     private static final Set<AntPathRequestMatcher> requestMatcherSet =
-            Set.of(new AntPathRequestMatcher("/auth/login"), new AntPathRequestMatcher("/auth/token/refresh"), new AntPathRequestMatcher("/users/sign-up"));
+            Set.of(new AntPathRequestMatcher("/auth/login"),
+                    new AntPathRequestMatcher("/auth/token/refresh"),
+                    new AntPathRequestMatcher("/users/sign-up"),
+                    new AntPathRequestMatcher("/ws/**"));
     private static final String ACCESS_TOKEN_PREFIX = "ACCESS_TOKEN:";
     private final JwtService jwtService;
     private final RedisAuthRepository redisTokenRepository;
@@ -45,7 +48,12 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if (!matchPermitURL(request)) {
+            log.info("method = {}", request.getMethod());
+            log.info("url = {}", request.getRequestURL());
+            log.info("protocol = {}", request.getProtocol());
+
             String token = resolveBearerAuthorizeHeader(request);
+            log.info("token = {}", token);
             try {
                 jwtService.validateToken(token);
             } catch (Exception e) {
@@ -67,6 +75,8 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+
+        log.info("status = {}", response.getStatus());
     }
 
     private boolean matchPermitURL(HttpServletRequest request) {

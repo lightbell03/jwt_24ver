@@ -9,9 +9,9 @@ public enum ErrorType {
     INTERNAL_SERVER_ERROR("internal server error", HttpStatus.INTERNAL_SERVER_ERROR, 5000);
     ;
 
-    private String message;
-    private HttpStatus status;
-    private int errorCode;
+    private final String message;
+    private final HttpStatus status;
+    private final int errorCode;
 
     ErrorType(String message, HttpStatus status, int errorCode) {
         this.message = message;

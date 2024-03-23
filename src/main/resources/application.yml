@@ -1,30 +1,25 @@
 spring:
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:testdb
-    username: sa
-    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/test
+    username: root
+    password: 1234
 
   jpa:
-    database: h2
-    show-sql: true
+    database: mysql
     properties:
       hibernate:
         globally_quoted_identifiers: true
     hibernate:
-      ddl-auto: create
-
+      ddl-auto: none
 
   data:
     redis:
       port: '6379'
       host: localhost
-  h2:
-    console:
-      enabled: true
 
 jwt:
   token:
-    access-token-expire-time: 10000
+    access-token-expire-time: 300000
     refresh-token-expire-time: 300000
     security-key: security-key-enough-for-line-this-is-security-key-this-is-security-key
